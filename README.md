@@ -12,6 +12,7 @@ Clone this repository using:
 ```bash
 git clone https://github.com/your-username/LLM_batch_process.git
 cd LLM_batch_process
+```
 
 ## 🛠 How to Use
 
@@ -22,10 +23,12 @@ Before importing packages, ensure you have set your `OPENAI_API_KEY` or `MISTRAL
 #### OpenAI Batch API
 ```python
 from openai_batch import OpenAIBatchProcessor
+```
 
 #### Mistral AI Batch API
 ```python
 from mistral_batch import MistralAIBatchProcessor
+```
 
 ### 2️⃣ Create a Batch Processor
 
@@ -40,5 +43,5 @@ batch_processor = OpenAIBatchProcessor(
     batch_dir="openai_batch_jobs",  # Optional: Folder for separated batch jobs (auto-created if not exists)
     output_dir="openai_batch_outputs"  # Optional: Folder for batch outputs (auto-created if not exists)
 )
-
+```
 
