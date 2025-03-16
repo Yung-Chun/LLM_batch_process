@@ -44,4 +44,6 @@ batch_processor = OpenAIBatchProcessor(
     output_dir="openai_batch_outputs"  # Optional: Folder for batch outputs (auto-created if not exists)
 )
 ```
+For Mistral AI, simply replace `OpenAIBatchProcessor` with `MistralAIBatchProcessor`. Both processors share the same configuration structure, as shown below.
+
 
