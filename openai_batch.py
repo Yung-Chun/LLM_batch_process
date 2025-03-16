@@ -1,6 +1,6 @@
 import json
 import os
-from time import sleep
+import time
 import re
 from pathlib import Path
 from glob import glob
@@ -9,12 +9,16 @@ from typing import List, Dict
 
 class OpenAIBatchProcessor:
     def __init__(self, model_name: str, max_tokens: int, temperature: float = 0.1, 
-                 filename: str = 'my_file', task_dir: str = 'batch_tasks', batch_dir: str = 'batch_jobs', output_dir: str = 'batch_outputs'):
-        self.client = OpenAI()
+                 filename_prefix: str = 'openai', task_dir: str = 'batch_tasks', batch_dir: str = 'batch_jobs', output_dir: str = 'batch_outputs'):
+        # Access environment variable
+        self.api_key = os.getenv("OPENAI_API_KEY")  # Retrieve the API_KEY set earlier
+        if not self.api_key:
+            print("Error: OPENAI_API_KEY is not set as an environment variable.")
+        self.client = OpenAI(api_key=self.api_key)
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.filename = filename
+        self.filename_prefix_prefix = filename_prefix
         self.task_dir = task_dir
         self.batch_dir = batch_dir
         self.output_dir = output_dir
@@ -34,14 +38,14 @@ class OpenAIBatchProcessor:
         }
 
     def write_task_file(self, tasks: List[Dict]):
-        file_path = Path(self.task_dir) / f"{self.filename}_tasks.jsonl"
+        file_path = Path(self.task_dir) / f"{self.filename_prefix}_tasks.jsonl"
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with file_path.open('w', encoding='utf-8') as f:
             for obj in tasks:
                 f.write(json.dumps(obj) + '\n')
 
     def write_batch_file(self, requests: List[Dict], batch_id: int):
-        file_path = Path(self.batch_dir) / f"{self.filename}_batch_job{batch_id}.jsonl"
+        file_path = Path(self.batch_dir) / f"{self.filename_prefix}_batch_job{batch_id}.jsonl"
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not requests:
@@ -59,7 +63,7 @@ class OpenAIBatchProcessor:
 
 
     def upload_batch_file(self, batch_id: int):
-        filename = f"{self.filename}_batch_job{batch_id}.jsonl"
+        filename = f"{self.filename_prefix}_batch_job{batch_id}.jsonl"
         file_path = Path(self.batch_dir) / filename
 
         if not file_path.exists():
@@ -99,18 +103,23 @@ class OpenAIBatchProcessor:
             return None
 
     def check_batch_job_status(self, batch_job_id: str, check_interval: int = 3) -> str:
-        final_statuses = {'completed', 'failed', 'expired', 'cancelled'}
+        success_status = {'completed'}
+        failed_statuses = {'failed', 'expired', 'cancelled'}
         while True:
             try:
-                batch_job = self.client.batches.retrieve(batch_job_id)
-                status = batch_job.status.lower()
-                print(f"Current status: {status}")
-                if status in final_statuses:
+                batch_job = self.client.batch.jobs.get(job_id=batch_job_id)
+                status = batch_job.status
+                if status in success_status:
+                    print(f"Batch job {batch_job.id} finished with status: {status}")
                     return status
-                sleep(check_interval * 60)
+                elif status in failed_statuses:
+                    print(f"Batch job {batch_job.id} ended with status: {status}. Moving to the next batch.")
+                    return status
+                print(f"Current status: {status}. Checking again in {check_interval} minutes...")
+                time.sleep(check_interval * 60)
             except Exception as e:
                 print(f"Error checking status: {e}, retrying...")
-                sleep(check_interval * 60)
+                time.sleep(check_interval * 60)
     
     def save_batch_output(self, output_file_id: str):
         """Saves batch output files to the specified directory with a sequential ID."""
@@ -118,7 +127,7 @@ class OpenAIBatchProcessor:
         path.mkdir(parents=True, exist_ok=True)
 
     
-        output_file_name = f"{self.filename}_batch_output_{output_file_id}.json"
+        output_file_name = f"{self.filename_prefix}_batch_output_{output_file_id}.json"
         file_path = path / output_file_name
 
         print(f"Saving batch output to: {file_path}")
