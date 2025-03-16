@@ -10,7 +10,7 @@ This repository provides wrapped batch processing workflows for **OpenAI** and *
 **## 📦 Installation**
 Clone this repository using:
 ```bash
-git clone https://github.com/your-username/LLM_batch_process.git
+git clone https://github.com/Yung-Chun/LLM_batch_process.git
 cd LLM_batch_process
 ```
 
