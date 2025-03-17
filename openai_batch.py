@@ -19,9 +19,9 @@ class OpenAIBatchProcessor:
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
         self.filename_prefix = filename_prefix
-        self.task_dir = self.filename_prefix + '_' + task_dir
-        self.batch_dir = self.filename_prefix + '_' + batch_dir
-        self.output_dir = self.filename_prefix + '_' + output_dir
+        self.task_dir = task_dir
+        self.batch_dir = batch_dir
+        self.output_dir = output_dir
         self.success_statuses = {'completed'}
         self.failed_statuses = {'failed', 'expired', 'cancelled'}
         self.statuses = {'completed', 'failed', 'expired', 'cancelled', 'validating', 'in_progress', 'finalizing', 'cancelling'}
