@@ -36,14 +36,26 @@ from mistral_batch import MistralAIBatchProcessor
 ```python
 batch_processor = OpenAIBatchProcessor(
     model_name="gpt-4o",  # Specify the model
-    max_tokens=300,  # Set the maximum output tokens          
-    temperature=0.5,  # Optional: Default temperature is 0.1          
-    filename_prefix="my_openai_task",  # Optional: Set a filename prefix for your tasks
+    max_completion_tokens=300,  max_completion_tokens=300,  # Optional: The default value is `None`. According to OpenAI, the maximum is 4096.
+    temperature=0.5,  # Optional: Default temperature is 1          
+    filename_prefix="my_openai",  # Optional: Set a filename prefix for your tasks
     task_dir="openai_batch_tasks",  # Optional: Folder to save full tasks (auto-created if not exists)
     batch_dir="openai_batch_jobs",  # Optional: Folder for separated batch jobs (auto-created if not exists)
     output_dir="openai_batch_outputs"  # Optional: Folder for batch outputs (auto-created if not exists)
 )
 ```
 For Mistral AI, simply replace `OpenAIBatchProcessor` with `MistralAIBatchProcessor`. Both processors share the same configuration structure, as shown below.
+
+### 3️⃣ Create Tasks
+
+Define a list of IDs and messages, then save them as a `.jsonl` file.  
+Each message can include multiple prompts, such as **system**, **user**, and **assistant**.
+
+```python
+tasks = batch_processor.create_task(ids, messages)
+batch_processor.write_task_file(tasks)
+```
+
+
 
 
