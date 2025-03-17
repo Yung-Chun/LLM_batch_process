@@ -8,7 +8,7 @@ from openai import OpenAI
 from typing import List, Dict
 
 class OpenAIBatchProcessor:
-    def __init__(self, model_name: str, max_tokens: int, temperature: float = 0.1, 
+    def __init__(self, model_name: str, max_completion_tokens: int = None, temperature: float = 1, 
                  filename_prefix: str = 'openai', task_dir: str = 'batch_tasks', batch_dir: str = 'batch_jobs', output_dir: str = 'batch_outputs'):
         # Access environment variable
         self.api_key = os.getenv("OPENAI_API_KEY")  # Retrieve the API_KEY set earlier
@@ -17,25 +17,32 @@ class OpenAIBatchProcessor:
         self.client = OpenAI(api_key=self.api_key)
         self.model_name = model_name
         self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.filename_prefix_prefix = filename_prefix
-        self.task_dir = task_dir
-        self.batch_dir = batch_dir
-        self.output_dir = output_dir
+        self.max_completion_tokens = max_completion_tokens
+        self.filename_prefix = filename_prefix
+        self.task_dir = self.filename_prefix + '_' + task_dir
+        self.batch_dir = self.filename_prefix + '_' + batch_dir
+        self.output_dir = self.filename_prefix + '_' + output_dir
+        self.success_statuses = {'completed'}
+        self.failed_statuses = {'failed', 'expired', 'cancelled'}
+        self.statuses = {'completed', 'failed', 'expired', 'cancelled', 'validating', 'in_progress', 'finalizing', 'cancelling'}
 
-    def create_task(self, id: str, messages: list) -> dict:
-        return {
-            "custom_id": str(id),
-            "method": "POST",
-            "url": "/v1/chat/completions",
-            "body": {
-                "model": self.model_name,
-                # "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "response_format": {"type": "json_object"},
-                "messages": messages,
-            },
-        }
+    def create_task(self, ids: List, messages: List) -> List[Dict]:
+        tasks = []
+        for task_id, message in zip(ids, messages):  # Unpacking tuple directly
+            tasks.append({
+                "custom_id": str(task_id),
+                "method": "POST",
+                "url": "/v1/chat/completions",
+                "body": {
+                    "model": self.model_name,
+                    "temperature": self.temperature,
+                    "max_completion_tokens": self.max_completion_tokens,
+                    "response_format": {"type": "json_object"},
+                    "messages": message,
+                },
+            })
+        return tasks
+
 
     def write_task_file(self, tasks: List[Dict]):
         file_path = Path(self.task_dir) / f"{self.filename_prefix}_tasks.jsonl"
@@ -103,16 +110,14 @@ class OpenAIBatchProcessor:
             return None
 
     def check_batch_job_status(self, batch_job_id: str, check_interval: int = 3) -> str:
-        success_status = {'completed'}
-        failed_statuses = {'failed', 'expired', 'cancelled'}
         while True:
             try:
                 batch_job = self.client.batch.jobs.get(job_id=batch_job_id)
                 status = batch_job.status
-                if status in success_status:
+                if status in self.success_status:
                     print(f"Batch job {batch_job.id} finished with status: {status}")
                     return status
-                elif status in failed_statuses:
+                elif status in self.failed_statuses:
                     print(f"Batch job {batch_job.id} ended with status: {status}. Moving to the next batch.")
                     return status
                 print(f"Current status: {status}. Checking again in {check_interval} minutes...")
@@ -125,7 +130,6 @@ class OpenAIBatchProcessor:
         """Saves batch output files to the specified directory with a sequential ID."""
         path = Path(self.output_dir)
         path.mkdir(parents=True, exist_ok=True)
-
     
         output_file_name = f"{self.filename_prefix}_batch_output_{output_file_id}.json"
         file_path = path / output_file_name
