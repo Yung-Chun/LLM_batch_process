@@ -38,7 +38,7 @@ class OpenAIBatchProcessor:
                     "temperature": self.temperature,
                     "max_completion_tokens": self.max_completion_tokens,
                     "response_format": {"type": "json_object"},
-                    "messages": message,
+                    "messages": [message],
                 },
             })
         return tasks
