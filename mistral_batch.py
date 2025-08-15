@@ -1,3 +1,6 @@
+# Copyright (c) 2025 Yung-Chun Chen
+# Licensed under the MIT License. See LICENSE file in the project root for details.
+
 import json
 import os
 import time
